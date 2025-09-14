@@ -1,0 +1,16 @@
+# 音声データ
+autoencoder/data
+data1/input-mp3data
+data1/input-mp3data-other
+data5/input-mp3data
+data5/input-mp3data-other
+data5/anomalies
+data5/noised-test
+data5/test
+data5/train
+data5/valid
+lstm/data
+mp4tomp3/input
+mp4tomp3/output
+oneclass-svm/data
+
