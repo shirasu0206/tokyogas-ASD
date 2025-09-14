@@ -1,7 +1,7 @@
 # tokyogas-ASD リポジトリ – 詳細 README
 ## 概要
 
-このリポジトリは、東京ガスが保有する「ASD（Anomaly Sound Detection）」の検証用コードとデータ構造です。主な目的は、音響データから異常音を検出するための機械学習モデルを構築・評価することです。CNN‑ベースのオートエンコーダ、LSTMオートエンコーダ、ガウス混合モデル(GMM)＋One‑Class SVM など複数のアプローチが実装されています。動画ファイルを音声に変換するためのスクリプトや、元データにピッチ変更やノイズ付与を行う前処理スクリプトも含まれます。
+このリポジトリは、東京ガス様とのプロジェクトの一環である「ASD（Anomaly Sound Detection）」の検証用コードとデータ構造です。主な目的は、音響データから異常音を検出するための機械学習モデルを構築・評価することです。CNN‑ベースのオートエンコーダ、LSTMオートエンコーダ、ガウス混合モデル(GMM)＋One‑Class SVM など複数のアプローチが実装されています。動画ファイルを音声に変換するためのスクリプトや、元データにピッチ変更やノイズ付与を行う前処理スクリプトも含まれます。
 
 ## ディレクトリ構成
 
@@ -66,36 +66,36 @@ SEGMENT_LENGTH_SEC や分割比率はスクリプト内の定数で変更でき�
 ピッチ変更とノイズ付与を組み合わせたい場合は、ピッチ変更で生成したファイルに対してノイズ付与を再度実行し、./data/noised-pitched-test や ./data/noised-pitched-train を作成します。
 
 ### 4. モデルの学習
-Autoencoder（CNN）
+#### Autoencoder（CNN）
 
 前処理・拡張後のデータを ./data/pitch-train（学習）、./data/pitch-valid（検証）に配置します。
 
 python autoencoder/2-train-autoencoder.py を実行すると、Mel スペクトログラムを入力とする CNN オートエンコーダが学習されます。学習過程では訓練損失と検証損失が表示され、検証損失が最小になったモデルが best_autoencoder.pth や best_autoencoder-5-2.pth などとして保存されます。
 
-LSTM オートエンコーダ
+#### LSTM オートエンコーダ
 
 同様に ./data/pitch-train／./data/pitch-valid に音声データを準備します。
 
 python lstm/2-train-lstm.py を実行すると、メルスペクトログラムを系列データとして扱う LSTM オートエンコーダが学習されます。学習が進むと最良モデルが best_lstm_autoencoder-5-2.pth などに保存されます。
 
-GMM ＋ One‑Class SVM
+#### GMM ＋ One‑Class SVM
 
 data/pitch-train に学習用 WAV を準備します。
 
 python oneclass-svm/2-train-svm.py を実行すると、Mel スペクトログラムをフラットな特徴ベクトルに展開し、StandardScaler で正規化し、PCA で次元削減した後、GaussianMixture により異常度モデルを学習します。学習済みモデルは gmm_model.pkl、scaler.pkl、pca.pkl として保存されます。
 
 ### 5. 評価・異常検出
-Autoencoder 系
+#### Autoencoder 系
 
 通常テスト：python autoencoder/3-test-autoencoder.py を実行すると、./data/test の WAV に対して再構成誤差を計算し、閾値を超えるファイルを異常と判断します。異常と判定された音声は ./data/anomalies にコピーされ、TP/FP/TN/FN などの評価指標が表示されます。
 
 ピッチ・ノイズ付きテスト：python autoencoder/3.1-test-pitch.py では ./data/noised-pitched-test のデータに対して同様の処理を行います。閾値はスクリプト内で threshold = 0.0012 などに設定されており、必要に応じて調整します。
 
-LSTM 系
+#### LSTM 系
 
 python lstm/3-test-lstm.py を実行します。LSTM オートエンコーダの出力との再構成誤差を計算し、閾値を超えるデータを異常とします。結果のグラフは reconstruction_error.png として保存されます。
 
-One‑Class SVM (GMM)
+#### One‑Class SVM (GMM)
 
 python oneclass-svm/3-test-svm.py は、ノイズ付きデータ(./data/noised-test)に対して GMM の対数尤度を計算し、負の対数尤度が閾値より大きいものを異常と判定します。
 閾値は平均＋2σに基づいて計算後、固定値（例: 150）に変更して利用する例が示されています。
@@ -104,20 +104,21 @@ python oneclass-svm/3-1-pitich-test.py はピッチ付き・ノイズ付きの�
 
 ### データ配置ガイド
 
-MP4 動画: mp4tomp3/input に入れ、change.py で音声を抽出して mp4tomp3/output へ。抽出後の MP3 は data/input-mp3data へコピーします。
+#### MP4 動画: 
+mp4tomp3/input に入れ、change.py で音声を抽出して mp4tomp3/output へ。抽出後の MP3 は data/input-mp3data へコピーします。ここでいうmp4動画とは東京ガス様から頂いた現場データです。google drive からダウンロードしてください。
 
-学習／検証／テスト音声 (WAV): 1-preprocess.py で自動生成されます。TRAIN_DIR、VALID_DIR、TEST_DIR はスクリプト内で ./data/train、./data/valid、./data/test に設定されています。
+#### 学習／検証／テスト音声 (WAV): 
+1-preprocess.py で自動生成されます。TRAIN_DIR、VALID_DIR、TEST_DIR はスクリプト内で ./data/train、./data/valid、./data/test に設定されています。
 
 ノイズ音: data/noise や data1/noise に m4a 形式で配置します。リポジトリには机や火の音などサンプルが含まれています。
 自身で収集したノイズもここに追加できます。
 
-ピッチ変更結果: 1.3-change-pitch.py で生成した WAV を data/pitch-test または data/pitch-train 等に保存します。PITCH_SHIFT_VALUES を変更すればシフト量を変えられます。
+#### ピッチ変更結果: 
+1.3-change-pitch.py で生成した WAV を data/pitch-test または data/pitch-train 等に保存します。PITCH_SHIFT_VALUES を変更すればシフト量を変えられます。
 
-ノイズ付与結果: 1.5-noise-fusion.py 実行後、結果は data/noised-test 等に保存されます。テストだけノイズを付加する場合は NUM_NOISE_ADDED を変更して対象ファイル数を調整します。
+#### ノイズ付与結果: 
+1.5-noise-fusion.py 実行後、結果は data/noised-test 等に保存されます。テストだけノイズを付加する場合は NUM_NOISE_ADDED を変更して対象ファイル数を調整します。
 
-学習済みモデル: 各トレーニングスクリプト実行後、.pth や .pkl のファイルが保存されます。テストスクリプト内でファイル名を指定してロードしています（best_autoencoder-5-1.pth など）。
+#### 学習済みモデル: 
+各トレーニングスクリプト実行後、.pth や .pkl のファイルが保存されます。テストスクリプト内でファイル名を指定してロードしています（best_autoencoder-5-1.pth など）。
 必要に応じてファイル名を書き換えてください。
-
- ## まとめ
-
-この README では、tokyogas-ASD リポジトリで提供されている各種スクリプトの目的と使用方法、データの配置場所、モデル学習および評価の流れを詳細に説明しました。新たに音声データやノイズを追加する場合は、対応するフォルダにファイルを置き、前処理とデータ拡張スクリプトを実行することで自動的に学習・評価に適した形に変換できます。閾値やパラメータはスクリプト内の定数として定義されているので、タスクに応じて調整してください。
